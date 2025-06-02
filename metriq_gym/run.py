@@ -17,7 +17,13 @@ from qbraid.runtime import (
     load_provider,
 )
 
-from metriq_gym.benchmarks import BENCHMARK_DATA_CLASSES, BENCHMARK_HANDLERS
+from metriq_gym.local_simulator import LocalSimulatorDevice
+
+from metriq_gym.benchmarks import (
+    BENCHMARK_DATA_CLASSES,
+    BENCHMARK_HANDLERS,
+    BENCHMARK_RESULT_CLASSES,
+)
 from metriq_gym.benchmarks.benchmark import Benchmark, BenchmarkData
 from metriq_gym.cli import parse_arguments, prompt_for_job
 from metriq_gym.exceptions import QBraidSetupError
@@ -41,6 +47,13 @@ def setup_device(provider_name: str, backend_name: str) -> QuantumDevice:
     Raises:
         QBraidSetupError: If no device matching the name is found in the provider.
     """
+    if provider_name == "local":
+        try:
+            return LocalSimulatorDevice(backend_name)
+        except Exception as exc:  # pragma: no cover - sanity check
+            logger.error(str(exc))
+            raise QBraidSetupError("Device not found")
+
     try:
         provider: QuantumProvider = load_provider(provider_name)
     except QbraidError:
@@ -80,17 +93,22 @@ def dispatch_job(args: argparse.Namespace, job_manager: JobManager) -> None:
     job_type = JobType(params.benchmark_name)
     handler: Benchmark = setup_benchmark(args, params, job_type)
     job_data: BenchmarkData = handler.dispatch_handler(device)
-    job_id = job_manager.add_job(
-        MetriqGymJob(
-            id=str(uuid.uuid4()),
-            job_type=job_type,
-            params=params.model_dump(),
-            data=asdict(job_data),
-            provider_name=args.provider,
-            device_name=args.device,
-            dispatch_time=datetime.now(),
-        )
+    result_dict: dict | None = None
+    if isinstance(device, LocalSimulatorDevice):
+        result_data = [job.result().data for job in device.submitted_jobs]
+        results = handler.poll_handler(job_data, result_data, device.submitted_jobs)
+        result_dict = results.model_dump()
+
+    job_payload = MetriqGymJob(
+        id=str(uuid.uuid4()),
+        job_type=job_type,
+        params=params.model_dump(),
+        data={**asdict(job_data), **({"results": result_dict} if result_dict else {})},
+        provider_name=args.provider,
+        device_name=args.device,
+        dispatch_time=datetime.now(),
     )
+    job_id = job_manager.add_job(job_payload)
     print(f"Job dispatched with ID: {job_id}")
 
 
@@ -102,6 +120,15 @@ def poll_job(args: argparse.Namespace, job_manager: JobManager) -> None:
     job_type: JobType = JobType(metriq_job.job_type)
     job_data: BenchmarkData = setup_job_data_class(job_type)(**metriq_job.data)
     handler = setup_benchmark(args, validate_and_create_model(metriq_job.params), job_type)
+    if metriq_job.provider_name == "local" and "results" in metriq_job.data:
+        result_cls = BENCHMARK_RESULT_CLASSES[job_type]
+        results = result_cls(**metriq_job.data["results"])
+        if hasattr(args, "json"):
+            JsonExporter(metriq_job, results).export(args.json)
+        else:
+            CliExporter(metriq_job, results).export()
+        return
+
     quantum_jobs = [
         load_job(job_id, provider=metriq_job.provider_name, **asdict(job_data))
         for job_id in job_data.provider_job_ids

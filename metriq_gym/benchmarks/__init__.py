@@ -1,10 +1,11 @@
 from enum import StrEnum
 
 from metriq_gym.benchmarks.benchmark import Benchmark, BenchmarkData
-from metriq_gym.benchmarks.qml_kernel import QMLKernel, QMLKernelData
-from metriq_gym.benchmarks.clops import Clops, ClopsData
-from metriq_gym.benchmarks.quantum_volume import QuantumVolume, QuantumVolumeData
-from metriq_gym.benchmarks.bseq import BSEQ, BSEQData
+from metriq_gym.benchmarks.qml_kernel import QMLKernel, QMLKernelData, QMLKernelResult
+from metriq_gym.benchmarks.clops import Clops, ClopsData, ClopsResult
+from metriq_gym.benchmarks.quantum_volume import QuantumVolume, QuantumVolumeData, QuantumVolumeResult
+from metriq_gym.benchmarks.bseq import BSEQ, BSEQData, BSEQResult
+from metriq_gym.benchmarks.benchmark import BenchmarkResult
 
 
 class JobType(StrEnum):
@@ -33,4 +34,11 @@ SCHEMA_MAPPING = {
     JobType.CLOPS: "clops.schema.json",
     JobType.QML_KERNEL: "qml_kernel.schema.json",
     JobType.QUANTUM_VOLUME: "quantum_volume.schema.json",
+}
+
+BENCHMARK_RESULT_CLASSES: dict[JobType, type[BenchmarkResult]] = {
+    JobType.BSEQ: BSEQResult,
+    JobType.CLOPS: ClopsResult,
+    JobType.QML_KERNEL: QMLKernelResult,
+    JobType.QUANTUM_VOLUME: QuantumVolumeResult,
 }

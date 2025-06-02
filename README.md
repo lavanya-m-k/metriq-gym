@@ -182,6 +182,26 @@ Select a job index: 0
 INFO - Polling job...
 ```
 
+### Using local simulators
+
+Metriq-gym also supports running benchmarks on local simulators such as Qiskit's
+`AerSimulator`. This is helpful for quick testing without submitting jobs to a
+cloud provider.
+
+Dispatch a benchmark using the `local` provider and specify the simulator name
+with the `--device` flag:
+
+```sh
+mgym dispatch metriq_gym/schemas/examples/bseq.example.json --provider local --device aer_simulator
+```
+
+Since the execution happens locally, the results are available immediately and
+are stored with the dispatched job. Polling retrieves these stored results:
+
+```sh
+mgym poll --job_id <METRIQ_GYM_JOB_ID>
+```
+
 ## Contributing
 
 First, follow the [Setup](#setup) instructions above.
