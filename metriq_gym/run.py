@@ -17,13 +17,9 @@ from qbraid.runtime import (
     load_provider,
 )
 
-from metriq_gym.local_simulator import LocalSimulatorDevice
+from metriq_gym.local_simulator import LocalAerDevice
 
-from metriq_gym.benchmarks import (
-    BENCHMARK_DATA_CLASSES,
-    BENCHMARK_HANDLERS,
-    BENCHMARK_RESULT_CLASSES,
-)
+from metriq_gym.benchmarks import BENCHMARK_DATA_CLASSES, BENCHMARK_HANDLERS
 from metriq_gym.benchmarks.benchmark import Benchmark, BenchmarkData
 from metriq_gym.cli import parse_arguments, prompt_for_job
 from metriq_gym.exceptions import QBraidSetupError
@@ -48,11 +44,10 @@ def setup_device(provider_name: str, backend_name: str) -> QuantumDevice:
         QBraidSetupError: If no device matching the name is found in the provider.
     """
     if provider_name == "local":
-        try:
-            return LocalSimulatorDevice(backend_name)
-        except Exception as exc:  # pragma: no cover - sanity check
-            logger.error(str(exc))
+        if backend_name != "aer_simulator":
+            logger.error(f"Local provider supports only 'aer_simulator', got '{backend_name}'")
             raise QBraidSetupError("Device not found")
+        return LocalAerDevice()
 
     try:
         provider: QuantumProvider = load_provider(provider_name)
@@ -120,9 +115,10 @@ def poll_job(args: argparse.Namespace, job_manager: JobManager) -> None:
     job_type: JobType = JobType(metriq_job.job_type)
     job_data: BenchmarkData = setup_job_data_class(job_type)(**metriq_job.data)
     handler = setup_benchmark(args, validate_and_create_model(metriq_job.params), job_type)
-    if metriq_job.provider_name == "local" and "results" in metriq_job.data:
-        result_cls = BENCHMARK_RESULT_CLASSES[job_type]
-        results = result_cls(**metriq_job.data["results"])
+    if job_data.local_counts is not None:
+        result_data = [GateModelResultData(measurement_counts=count) for count in job_data.local_counts]
+        quantum_jobs = []
+        results = handler.poll_handler(job_data, result_data, quantum_jobs)
         if hasattr(args, "json"):
             JsonExporter(metriq_job, results).export(args.json)
         else:

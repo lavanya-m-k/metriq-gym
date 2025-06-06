@@ -72,3 +72,20 @@ def test_setup_device_invalid_device(mock_provider, patch_load_provider, caplog)
         in caplog.text
     )
     assert "Devices available: ['device1', 'device2']" in caplog.text
+
+
+def test_setup_device_local(monkeypatch):
+    mock_sim = MagicMock()
+    mock_sim.configuration.return_value.n_qubits = 5
+    mock_sim.configuration.return_value.basis_gates = ["cx", "u3"]
+
+    import types
+    import sys
+    mock_module = types.ModuleType("qiskit_aer")
+    mock_module.AerSimulator = lambda: mock_sim
+    monkeypatch.setitem(sys.modules, "qiskit_aer", mock_module)
+
+    device = setup_device("local", "aer_simulator")
+
+    assert device.id == "aer_simulator"
+    assert device.num_qubits == 5

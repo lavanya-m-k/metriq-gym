@@ -95,6 +95,17 @@ mgym poll --job_id <METRIQ_GYM_JOB_ID> --json
 This will create a JSON file with the results and the metadata of the job identified by `<METRIQ_GYM_JOB_ID>`.
 By default, the JSON file will be saved in the current working directory with the name `<METRIQ_GYM_JOB_ID>.json`.
 
+### Local simulators
+
+For quick testing you can use the Qiskit Aer simulator. Specify the `local` provider
+and the `aer_simulator` device when dispatching:
+
+```sh
+mgym dispatch examples/adder.json --provider local --device aer_simulator
+mgym poll --job_id <METRIQ_GYM_JOB_ID>
+```
+Since the simulation runs locally the job completes immediately and polling simply displays the results.
+
 ### View jobs
 
 You can view all the jobs that have been dispatched by using the `view` action. 

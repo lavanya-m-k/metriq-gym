@@ -155,6 +155,16 @@ class BSEQ(Benchmark):
             device.run(circ_set, shots=shots) for circ_set in trans_exp_sets
         ]
 
+        local_counts: list[dict[str, int]] | None = None
+        if self.args.provider == "local":
+            from metriq_gym.local_simulator import counts_from_job
+
+            local_counts = []
+            for job_set in quantum_jobs:
+                jobs = job_set if isinstance(job_set, list) else [job_set]
+                for job in jobs:
+                    local_counts.extend(counts_from_job(job))
+
         provider_job_ids = [
             job.id
             for quantum_job_set in quantum_jobs
@@ -171,6 +181,7 @@ class BSEQ(Benchmark):
                 "edge_color_map": dict(coloring.edge_color_map),
                 "edge_index_map": dict(coloring.edge_index_map),
             },
+            local_counts=local_counts,
         )
 
     def poll_handler(

@@ -23,6 +23,7 @@ def test_calc_stats_pass():
             [0.6, 0.4, 0.0, 0.0],
         ],
         trials=2,
+        local_counts=None,
     )
     counts = [
         {"00": 80, "01": 20, "10": 0, "11": 0},
@@ -44,6 +45,7 @@ def test_calc_stats_not_pass():
             [0.6, 0.4, 0.0, 0.0],
         ],
         trials=2,
+        local_counts=None,
     )
     counts = [
         {"00": 10, "01": 20, "10": 50, "11": 20},

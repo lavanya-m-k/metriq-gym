@@ -205,6 +205,15 @@ class QuantumVolume(Benchmark):
             if isinstance(quantum_job, QuantumJob)
             else [job.id for job in quantum_job]
         )
+        local_counts: list[dict[str, int]] | None = None
+        if self.args.provider == "local":
+            from metriq_gym.local_simulator import counts_from_job
+
+            jobs = quantum_job if isinstance(quantum_job, list) else [quantum_job]
+            local_counts = []
+            for job in jobs:
+                local_counts.extend(counts_from_job(job))
+
         return QuantumVolumeData(
             provider_job_ids=provider_job_ids,
             num_qubits=num_qubits,
@@ -213,6 +222,7 @@ class QuantumVolume(Benchmark):
             confidence_level=self.params.confidence_level,
             ideal_probs=ideal_probs,
             trials=trials,
+            local_counts=local_counts,
         )
 
     def poll_handler(

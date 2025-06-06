@@ -64,3 +64,24 @@ def test_list_jobs_no_jobs(capsys):
 
     # Verify the printed output
     assert captured.out == "No jobs found.\n"
+
+
+def test_parse_arguments_local(monkeypatch):
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "mgym",
+            "dispatch",
+            "job.json",
+            "--provider",
+            "local",
+            "--device",
+            "aer_simulator",
+        ],
+    )
+    from metriq_gym.cli import parse_arguments
+
+    args = parse_arguments()
+
+    assert args.provider == "local"
+    assert args.device == "aer_simulator"

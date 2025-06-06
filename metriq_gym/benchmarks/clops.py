@@ -146,7 +146,16 @@ class Clops(Benchmark):
         )
         quantum_job: QuantumJob | list[QuantumJob] = device.run(circuits, shots=self.params.shots)
         provider_job_ids = flatten_job_ids(quantum_job)
-        return ClopsData(provider_job_ids=provider_job_ids)
+        local_counts: list[dict[str, int]] | None = None
+        if self.args.provider == "local":
+            from metriq_gym.local_simulator import counts_from_job
+
+            jobs = quantum_job if isinstance(quantum_job, list) else [quantum_job]
+            local_counts = []
+            for job in jobs:
+                local_counts.extend(counts_from_job(job))
+
+        return ClopsData(provider_job_ids=provider_job_ids, local_counts=local_counts)
 
     def poll_handler(
         self,
